@@ -264,6 +264,11 @@ def main():
         )
     )
     
+    # If no file is selected, print message and close. 
+    if(filename == ''):
+        print("You must select a valid .csv file. Stopping execution.")
+        exit()
+    
     df = pd.read_csv(filename)
     
     # Use on MacBook
