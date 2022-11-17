@@ -252,8 +252,7 @@ def setColumnsToSkip(df, index):
     return df
 
 def main():
-    # Importing the dataset
-    
+        
     # Open prompt for the file to select
     filename = fd.askopenfilename(
         title='Open a file',
@@ -269,12 +268,8 @@ def main():
         print("You must select a valid .csv file. Stopping execution.")
         exit()
     
+    # Importing the dataset
     df = pd.read_csv(filename)
-    
-    # Use on MacBook
-    #df = pd.read_csv('/Users/dalecampbell/Library/CloudStorage/OneDrive-TectorSolutions/Documents/Stockton University/DSSA 5001 - Intro To Data Science & Analytics/Sokol/Assignment 2/Assignment2_contacts.csv')
-    # Use on Windows 
-    #df = pd.read_csv("C:/Users/13045/OneDrive - Tector Solutions/Documents/Stockton University/DSSA 5001 - Intro To Data Science & Analytics/Sokol/Assignment 2/Assignment2_contacts.csv")
     
     # Let's convert the dtypes to Strings and add some additional columns
     df = convertDTypes(df)
@@ -358,6 +353,8 @@ def main():
     df.drop('pattern', axis=1, inplace=True)
     df.drop('hasDiffPatterns', axis=1, inplace=True)
     df.drop('emailExistsForCompany', axis=1, inplace=True)
+    
+    #print(df.head(50))
     
     # Saving df to a new .csv
     df.to_csv('updated_contacts.csv', header=True, index=False)
