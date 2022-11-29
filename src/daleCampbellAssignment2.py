@@ -1,5 +1,6 @@
 # Necessary imports
 import pandas as pd
+from string import punctuation
 from pathlib import Path
 import tkinter as tk
 from tkinter import filedialog as fd
@@ -13,90 +14,66 @@ def getCompanyDomain(email):
     """
     return (email.split("@")[1])
 
+def get_punct(email_prefix):
+    punctReturn = ""
+    
+    for punct in punctuation:
+        if punct in email_prefix:
+            punctReturn = punct
+            break
+    
+    return punctReturn
+
 def findPattern(df, index, row):
     """
     Tries to match the pattern based on some preset patterns
 
     Returns:
-        an integer of the type of format
-        
-        1 - first.last@company
-        2 - firstInit + lastname @ comapny
-        3 - first + lastInit @ company
-        4 - lastname + firstInit @ company
-        5 - lastInit + first @ company
-        6 - first@ company
-        7 - last@ company
-        8 - firstName + . + lastInit @ company
-        
-        9 - firstName.lastName @ domain
-        10 - firstInit + lastname @ domain
-        11 - first + lastInit @ domain
-        12 - lastname + firstInit @ domain
-        13 - lastInit + first @ domain
-        14 - first@ domain
-        15 - last@  domain
-        16 - firstName + . + lastInit @ domain
-        
-        17 - firstInit + "." + lastName @ company
-        18 - firstInit + "." + lastName @ domain
-        19 - firstNamelastName @ company
-        20 - firstNameLastName @ domain
-        21 - firstInit lastInit @ company
-        22 - firstInit lastInit @ domain
+        If pattern matches, an integer of the type of format, bool for hasPunctuation 
+            1 - first + last
+            2 - first + lastInit
+            3-  firstInit + last
+            4 - last + firstInit 
+            5 - lastInit + first
+            6 - last + first
+            7 - first
+            8 - last
+            9 - firstInit + lastInit
     """    
     firstName = df.at[index, 'First Name'].lower()
     lastName = df.at[index, 'Last Name'].lower()
     firstInit = firstName[0].lower()
     lastInit = lastName[0].lower()
-    company = df.at[index, 'URL'].lower()
+    #company = df.at[index, 'URL'].lower()
     email = df.at[index, 'Email'].lower()
+    
     domain = getCompanyDomain(email).lower()
+    punct = get_punct(email.split("@")[0])
+    
+    # If punct is not null, set retBool = true
+    if punct != "":
+        retBool = True
+    else:
+        retBool = False
 
-    if(email == (firstName + "." + lastName + "@" + company)):
+    if(email == (firstName + punct + lastName + "@" + domain)):
         df.at[index, 'pattern'] = 1
-    elif(email == (firstInit + lastName + "@" + company)):
+    elif(email == (firstName + punct + lastInit + "@" + domain)):
         df.at[index, 'pattern'] = 2
-    elif(email == (firstName + lastInit + "@" + company)):
+    elif(email == (firstInit + punct + lastName + "@" + domain)):
         df.at[index, 'pattern'] = 3
-    elif(email == (lastName + firstInit + "@" + company)):
+    elif(email == (lastName + punct + firstInit + "@" + domain)):
         df.at[index, 'pattern'] = 4
-    elif(email == (lastInit + firstName + "@" + company)):
+    elif(email == (lastInit + punct + firstName + "@" + domain)):
         df.at[index, 'pattern'] = 5
-    elif(email == (firstName + "@" + company)):
+    elif(email == (lastName + punct + firstName + "@" + domain)):
         df.at[index, 'pattern'] = 6
-    elif(email == (lastName + "@" + company)):
+    elif(email == (firstName + punct + "@" + domain)):
         df.at[index, 'pattern'] = 7
-    elif(email == (firstName + "." + lastInit + "@" + company)):
-        df.at[index, 'pattern'] = 8    
-    elif(email == (firstName + "." + lastName + "@" + domain)):
-        df.at[index, 'pattern'] = 9
-    elif(email == (firstInit + lastName + "@" + domain)):
-        df.at[index, 'pattern'] = 10
-    elif(email == (firstName + lastInit + "@" + domain)):
-        df.at[index, 'pattern'] = 11
-    elif(email == (lastName + firstInit + "@" + domain)):
-        df.at[index, 'pattern'] = 12
-    elif(email == (lastInit + firstName + "@" + domain)):
-        df.at[index, 'pattern'] = 13
-    elif(email == (firstName + "@" + domain)):
-        df.at[index, 'pattern'] = 14
-    elif(email == (lastName + "@" + domain)):
-        df.at[index, 'pattern'] = 15
-    elif(email == (firstName + "." + lastInit + "@" + domain)):
-        df.at[index, 'pattern'] = 16
-    elif(email == (firstInit + "." + lastName + "@" + company)):
-        df.at[index, 'pattern'] = 17    
-    elif(email == (firstInit + "." + lastName + "@" + domain)):
-        df.at[index, 'pattern'] = 18
-    elif(email == (firstName + lastName + "@" + company)):
-        df.at[index, 'pattern'] = 19
-    elif(email == (firstName + lastName + "@" + domain)):
-        df.at[index, 'pattern'] = 20
-    elif(email == (firstInit + lastInit + "@" + company)):
-        df.at[index, 'pattern'] = 21
-    elif(email == (firstInit + lastInit + "@" + domain)):
-        df.at[index, 'pattern'] = 22
+    elif(email == (lastName + punct + "@" + domain)):
+        df.at[index, 'pattern'] = 8
+    elif(email == (firstInit + punct + lastInit + "@" + domain)):
+        df.at[index, 'pattern'] = 9 
     else:
         df.at[index, 'pattern'] = 100
     
@@ -104,7 +81,7 @@ def findPattern(df, index, row):
     if(index == 0):
         df.at[index, 'hasDiffPatterns'] = 0
         df.at[index, 'emailExistsForCompany'] = 0
-        return [True, df]
+        return [True, df, retBool]
         
     # Otherwise, check to see if this is for the same company or a new one
     else:
@@ -112,7 +89,7 @@ def findPattern(df, index, row):
         if(df.at[index, 'Company Name'] != df.at[(index-1), 'Company Name'] ):
             df.at[index, 'hasDiffPatterns'] = 0
             df.at[index, 'emailExistsForCompany'] = 0
-            return [True, df]
+            return [True, df, retBool]
         
         # Else need to see if the pattern matches previous one
         else:
@@ -120,15 +97,15 @@ def findPattern(df, index, row):
             if(df.at[index, 'pattern'] == df.at[(index-1), 'pattern']):
                 df.at[index, 'hasDiffPatterns'] = 0
                 df.at[index, 'emailExistsForCompany'] = 0
-                return [True, df]
+                return [True, df, retBool]
             
             # Otherwise, update columns, return false
             else:
                 df.at[index, 'hasDiffPatterns'] = 1
                 df.at[index, 'emailExistsForCompany'] = 1
-                return [False, df]
+                return [False, df, retBool]
 
-def createEmail(df, index, pattern):
+def createEmail(df, index, pattern, punct):
     """
     Takes in a dataframe, the index, and pattern. It will generate an email based on the pattern. The patterns can be found in findPattern
     """
@@ -350,14 +327,12 @@ def main():
         #print(df.iloc[index])
 
     # Removing columns we no longer need
-    df.drop('pattern', axis=1, inplace=True)
-    df.drop('hasDiffPatterns', axis=1, inplace=True)
-    df.drop('emailExistsForCompany', axis=1, inplace=True)
+    df.drop(columns=['pattern', 'hasDiffPatterns', 'emailExistsForCompany'], axis=1, inplace=True)
     
     #print(df.head(50))
     
     # Saving df to a new .csv
-    df.to_csv('updated_contacts.csv', header=True, index=False)
+    #df.to_csv('updated_contacts.csv', header=True, index=False)
     
 if __name__ =='__main__':
     main()
