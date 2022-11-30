@@ -4,6 +4,7 @@ from string import punctuation
 from pathlib import Path
 import tkinter as tk
 from tkinter import filedialog as fd
+import re
 
 def getCompanyDomain(email):
     """Takes in an email. It will split the text on the '@' and return the domain. 
@@ -185,6 +186,62 @@ def createNewColumns(df):
     
     return df
 
+def cleanFirstNames(firstName):
+    """Accepts a string called firstName. If firstName contains punct, remove punct and return modified string. 
+    """
+    for punct in punctuation:
+        if punct in firstName:
+            firstName = firstName.replace(punct, "")
+            
+    return firstName
+
+def cleanLastNames(lastName):
+    """Accepts a string called lastName. If there is punct, Jr., Sr., etc. remove those values and return just the last name. 
+    Expected pattern types:
+        Z.
+        O'Neil
+        J. Wold
+        De Fina
+        D'Agostino Jr.
+        "Chip" Nowak
+        Vermylen Iii G.G. or Gensel Ii
+        Spangler, Gla
+        Jr Cox Sr.
+    
+    Returns df
+    """
+    # To start off, let's remove any Jr or Sr
+    lastName = lastName.replace(' Jr.', "").replace(' Jr', "").replace(' Sr', "").replace(' Sr.', "").replace('Jr ', "")
+    
+    strSplit = lastName.split(" ")
+    
+    # If there's only one name provided, just remove punct (if any)
+    if len(strSplit) == 1:
+        for punct in punctuation:
+            if punct in lastName:
+                lastName = lastName.replace(punct, "")
+        return lastName.lower()
+    # If two names provided, 
+    elif len(strSplit) >= 2:
+        # If it's 'J. Wold' for example, return wold 
+        if re.search("[a-zA-Z]\\. ", lastName):
+            return strSplit[1].lower()
+        
+        # If "Chip" Nowak -- return Nowak
+        if re.search('\".\"', lastName):
+            return strSplit[1].lower()
+        
+        # If lastName = Spangler, Gla
+        if re.search('[a-zA-Z]\\, ', lastName):
+            return strSplit[0].lower()
+        
+        # If lastName = Vermylen Iii G.G.
+        if re.search('[l][i]] ', lastName) or re.search('[l][i]][i] ', lastName):
+            return strSplit[0].lower()
+        
+    return lastName.lower()
+    
+
 def setColumnsToSkip(df, index):
     df.at[index, 'pattern'] = 0
     df.at[index, 'hasDiffPatterns'] = 0
@@ -216,16 +273,6 @@ def main():
     df = convertDTypes(df)
     df = createNewColumns(df)
     
-    # Need to clean first & last names
-    # First Name - 
-    #   154, 211, 773 all have 'T.'
-    # Last Name - 
-    #   'pavlic, Mba', 'Z.', 'Spangler, Gla', 'Pospisil, Mba', 'J. Wold', 'M. Lennex' 'F. Polsley', 'De Fina', 'D'Agostino Jr.', 'Vermylen Iii G.G.', 'Dortone Jr', 
-    #   'Nicholson, Cwp', 'Beyer, Cwp, Sctpp', 'Gensel Ii', 'Jose Castillo Jr.', 'Malone, Acsm Ep', 'Pressler, Ms, Ches, Acsm', 'Williams Csp, Acsm, Cspo', 'Jr Cox Sr.', 'Cottrill, P.E.', 
-    #   '"Chip" Nowak', 'O'Neil', 'A. Leggio, Jr.', 
-
-
-    
     # Now let's sort df by Company Name & Email -- placing non empty emails at the top of each company 
     df = df.sort_values(by=['Company Name', 'Email'], na_position='last')
     df.reset_index(drop=True, inplace=True)
@@ -235,6 +282,10 @@ def main():
     
     # Looping through the df to find patterns and update email
     for index, row in df.iterrows():
+        
+        # First let's clean the first and last names
+        df.at[index, 'First Name'] = cleanFirstNames(df.at[index, 'First Name'])
+        df.at[index, 'Last Name'] = cleanLastNames(df.at[index, 'Last Name'])
         
         # If this is the first run, we won't be able to compare to the previous row
         if(index == 0):
