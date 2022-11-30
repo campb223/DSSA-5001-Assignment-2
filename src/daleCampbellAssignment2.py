@@ -16,6 +16,12 @@ def getCompanyDomain(email):
     return (email.split("@")[1])
 
 def get_punct(email_prefix):
+    """ takes in an email prefix like 'dale.campbell' and returns the punctuation (if any) in the prefix. 
+    
+    Example:
+        Input = dale.campbell
+        Return = '.'
+    """
     punctReturn = ""
     
     for punct in punctuation:
@@ -30,7 +36,7 @@ def findPattern(df, index, row):
     Tries to match the pattern based on some preset patterns
 
     Returns:
-        If pattern matches, an integer of the type of format, bool for hasPunctuation 
+        If pattern matches previous pattern for this company, an integer of the type of pattern, the punctuation (if any)
             1 - first + last
             2 - first + lastInit
             3-  firstInit + last
@@ -100,7 +106,7 @@ def findPattern(df, index, row):
 
 def createEmail(df, index, pattern, punct):
     """
-    Takes in a dataframe, the index, and pattern. It will generate an email based on the pattern. The patterns can be found in findPattern
+    Takes in a dataframe, the index, pattern, and punctuation. It will generate an email based on the pattern. The patterns can be found in findPattern
     """
     firstName = df.at[index, 'First Name'].lower()
     lastName = df.at[index, 'Last Name'].lower()
@@ -189,11 +195,14 @@ def createNewColumns(df):
 def cleanFirstNames(firstName):
     """Accepts a string called firstName. If firstName contains punct, remove punct and return modified string. 
     """
+    return removePunct(firstName).lower()
+
+def removePunct(text):
     for punct in punctuation:
-        if punct in firstName:
-            firstName = firstName.replace(punct, "")
+        if punct in text:
+            text = text.replace(punct, "")
             
-    return firstName
+    return text
 
 def cleanLastNames(lastName):
     """Accepts a string called lastName. If there is punct, Jr., Sr., etc. remove those values and return just the last name. 
@@ -217,29 +226,26 @@ def cleanLastNames(lastName):
     
     # If there's only one name provided, just remove punct (if any)
     if len(strSplit) == 1:
-        for punct in punctuation:
-            if punct in lastName:
-                lastName = lastName.replace(punct, "")
-        return lastName.lower()
-    # If two names provided, 
+        return removePunct(lastName.lower())
+    # If two or more names provided
     elif len(strSplit) >= 2:
         # If it's 'J. Wold' for example, return wold 
         if re.search("[a-zA-Z]\\. ", lastName):
-            return strSplit[1].lower()
+            return removePunct(strSplit[1].lower())
         
         # If "Chip" Nowak -- return Nowak
-        if re.search('\".\"', lastName):
-            return strSplit[1].lower()
+        if re.search('\".\" ', lastName):
+            return removePunct(strSplit[1].lower())
         
         # If lastName = Spangler, Gla
         if re.search('[a-zA-Z]\\, ', lastName):
-            return strSplit[0].lower()
+            return removePunct(strSplit[0].lower())
         
         # If lastName = Vermylen Iii G.G.
-        if re.search('[l][i]] ', lastName) or re.search('[l][i]][i] ', lastName):
-            return strSplit[0].lower()
+        if re.search('[I][i]] ', lastName) or re.search('[I][i]][i] ', lastName):
+            return removePunct(strSplit[0].lower())
         
-    return lastName.lower()
+    return removePunct(lastName.lower()).replace(" ", "")
     
 
 def setColumnsToSkip(df, index):
@@ -293,14 +299,12 @@ def main():
             if(pd.isna(df.at[index, 'Email'])):
                 # If email is null -- we need to go to the next company
                 df = setColumnsToSkip(df, index)
-                #print(df.iloc[index])
             # If not -- does the pattern match the others in this company
             else:
                 foundPattern, df, punct = findPattern(df, index, row)                
                 # If returns True -- we found the pattern, it matches the previous pattern -- call createEmail
                 if(foundPattern == True):
-                    pattern = df.at[index, 'pattern'] 
-                    df = createEmail(df, index, pattern, punct)
+                    df = createEmail(df, index, df.at[index, 'pattern'], punct)
         
         # Otherwise, check if new company
         else:
@@ -310,14 +314,12 @@ def main():
                 if(pd.isna(df.at[index, 'Email'])):
                     # If email is null -- we need to go to the next company
                     df = setColumnsToSkip(df, index)
-                    #print(df.iloc[index])
                 # If not -- does the pattern match the others in this company
                 else:
                     foundPattern, df, punct = findPattern(df, index, row)
                     # If returns True -- we found the pattern, it matches the previous pattern -- call createEmail
                     if(foundPattern == True):
-                        pattern = df.at[index, 'pattern'] 
-                        df = createEmail(df, index, pattern, punct)
+                        df = createEmail(df, index, df.at[index, 'pattern'], punct)
                     # Otherwise it must have a different pattern
                     else:
                         df.at[index, 'hasDiffPatterns'] = 1
@@ -327,32 +329,26 @@ def main():
                 # Check if emailExistsForCompany and hasDiffPatterns
                 if(df.at[(index-1), 'hasDiffPatterns'] == 1 or df.at[(index-1), 'emailExistsForCompany'] == 1):
                     df = setColumnsToSkip(df, index)
-                    #print(df.iloc[index])
                 # Otherwise -- does email exist?
                 else:
                     # Is email null?
                     if(pd.isna(df.at[index, 'Email'])):
                         # If email is null -- use the previously found pattern to create an email
                         df.at[index, 'pattern'] = df.at[(index-1), 'pattern']
-                        punct = get_punct(df.at[index-1, 'newEmail'].split("@")[0])
-                        df = createEmail(df, index, df.at[index, 'pattern'], punct) 
+                        df = createEmail(df, index, df.at[index, 'pattern'], get_punct(df.at[index-1, 'newEmail'].split("@")[0])) 
                     # Else it has an email
                     else:
                         # Find the pattern of this email
                         foundPattern, df, punct = findPattern(df, index, row)
                         # If returns True -- we found the pattern, it matches the previous pattern -- call createEmail
                         if(foundPattern == True):
-                            pattern = df.at[index, 'pattern'] 
-                            df = createEmail(df, index, pattern, punct)
+                            df = createEmail(df, index, df.at[index, 'pattern'], punct)
                         # Otherwise it must have a different pattern
                         else:
                             df.at[index, 'hasDiffPatterns'] = 1
-        #print(df.iloc[index])
 
     # Removing columns we no longer need
     df.drop(columns=['pattern', 'hasDiffPatterns', 'emailExistsForCompany'], axis=1, inplace=True)
-    
-    #print(df.head(50))
     
     # Saving df to a new .csv
     df.to_csv('updated_contacts.csv', header=True, index=False)
