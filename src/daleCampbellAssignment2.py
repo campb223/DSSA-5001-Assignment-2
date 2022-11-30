@@ -216,6 +216,16 @@ def main():
     df = convertDTypes(df)
     df = createNewColumns(df)
     
+    # Need to clean first & last names
+    # First Name - 
+    #   154, 211, 773 all have 'T.'
+    # Last Name - 
+    #   'pavlic, Mba', 'Z.', 'Spangler, Gla', 'Pospisil, Mba', 'J. Wold', 'M. Lennex' 'F. Polsley', 'De Fina', 'D'Agostino Jr.', 'Vermylen Iii G.G.', 'Dortone Jr', 
+    #   'Nicholson, Cwp', 'Beyer, Cwp, Sctpp', 'Gensel Ii', 'Jose Castillo Jr.', 'Malone, Acsm Ep', 'Pressler, Ms, Ches, Acsm', 'Williams Csp, Acsm, Cspo', 'Jr Cox Sr.', 'Cottrill, P.E.', 
+    #   '"Chip" Nowak', 'O'Neil', 'A. Leggio, Jr.', 
+
+
+    
     # Now let's sort df by Company Name & Email -- placing non empty emails at the top of each company 
     df = df.sort_values(by=['Company Name', 'Email'], na_position='last')
     df.reset_index(drop=True, inplace=True)
@@ -291,10 +301,10 @@ def main():
     # Removing columns we no longer need
     df.drop(columns=['pattern', 'hasDiffPatterns', 'emailExistsForCompany'], axis=1, inplace=True)
     
-    print(df.head(50))
+    #print(df.head(50))
     
     # Saving df to a new .csv
-    #df.to_csv('updated_contacts.csv', header=True, index=False)
+    df.to_csv('updated_contacts.csv', header=True, index=False)
     
 if __name__ =='__main__':
     main()
