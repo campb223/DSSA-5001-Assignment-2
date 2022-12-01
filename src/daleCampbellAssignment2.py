@@ -1,8 +1,6 @@
 # Necessary imports
 import pandas as pd
 from string import punctuation
-from pathlib import Path
-import tkinter as tk
 from tkinter import filedialog as fd
 import re
 
@@ -120,30 +118,30 @@ def createEmail(df, index, pattern, punct):
     else:
         # If email is null -- get the domain from previous row
         if(pd.isna(email)):
-            domain = getCompanyDomain(df.at[(index-1), 'newEmail'])
+            domain = getCompanyDomain(df.at[(index-1), 'Email Extrapolated'])
         # Otherwise, get domain from this email
         else:
             domain = getCompanyDomain(df.at[index, 'Email'])
     
     # Find pattern type and generate email
     if(pattern == 1):
-        df.at[index, 'newEmail'] = (firstName + punct + lastName + "@" + domain)
+        df.at[index, 'Email Extrapolated'] = (firstName + punct + lastName + "@" + domain)
     elif(pattern == 2):
-        df.at[index, 'newEmail'] = (firstName + punct + lastInit + "@" + domain)
+        df.at[index, 'Email Extrapolated'] = (firstName + punct + lastInit + "@" + domain)
     elif(pattern == 3):
-        df.at[index, 'newEmail'] = (firstInit + punct + lastName + "@" + domain)
+        df.at[index, 'Email Extrapolated'] = (firstInit + punct + lastName + "@" + domain)
     elif(pattern == 4):
-        df.at[index, 'newEmail'] = (lastName + punct + firstInit + "@" + domain)
+        df.at[index, 'Email Extrapolated'] = (lastName + punct + firstInit + "@" + domain)
     elif(pattern == 5):
-        df.at[index, 'newEmail'] = (lastInit + punct + firstName + "@" + domain)
+        df.at[index, 'Email Extrapolated'] = (lastInit + punct + firstName + "@" + domain)
     elif(pattern == 6):
-        df.at[index, 'newEmail'] = (lastName + punct + firstName + "@" + domain)
+        df.at[index, 'Email Extrapolated'] = (lastName + punct + firstName + "@" + domain)
     elif(pattern == 7):
-        df.at[index, 'newEmail'] = (firstName + punct + "@" + domain)
+        df.at[index, 'Email Extrapolated'] = (firstName + punct + "@" + domain)
     elif(pattern == 8):
-        df.at[index, 'newEmail'] = (lastName + punct + "@" + domain)
+        df.at[index, 'Email Extrapolated'] = (lastName + punct + "@" + domain)
     elif(pattern == 9):
-        df.at[index, 'newEmail'] = (firstInit + punct + lastInit + "@" + domain)    
+        df.at[index, 'Email Extrapolated'] = (firstInit + punct + lastInit + "@" + domain)    
     else:
         # Can't find pattern, don't create email
         return df
@@ -176,7 +174,7 @@ def printStatment(df):
 
 def createNewColumns(df):
     # This will be for the new email we generate from our pattern
-    df['newEmail'] = None
+    df['Email Extrapolated'] = None
     
     # This will be for the type of pattern it is 
     df['pattern'] = None
@@ -335,7 +333,7 @@ def main():
                     if(pd.isna(df.at[index, 'Email'])):
                         # If email is null -- use the previously found pattern to create an email
                         df.at[index, 'pattern'] = df.at[(index-1), 'pattern']
-                        df = createEmail(df, index, df.at[index, 'pattern'], get_punct(df.at[index-1, 'newEmail'].split("@")[0])) 
+                        df = createEmail(df, index, df.at[index, 'pattern'], get_punct(df.at[index-1, 'Email Extrapolated'].split("@")[0])) 
                     # Else it has an email
                     else:
                         # Find the pattern of this email
